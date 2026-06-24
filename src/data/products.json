@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1001,
+    "title": "Boat Rockerz 450",
+    "price": 1499,
+    "rating": 4.5,
+    "brand": "Boat",
+    "thumbnail": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e"
+  },
+  {
+    "id": 1002,
+    "title": "HP Pavilion Laptop",
+    "price": 58999,
+    "rating": 4.3,
+    "brand": "HP",
+    "thumbnail": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853"
+  },
+  {
+    "id": 1003,
+    "title": "Noise Smart Watch",
+    "price": 2999,
+    "rating": 4.2,
+    "brand": "Noise",
+    "thumbnail": "https://images.unsplash.com/photo-1523275335684-37898b6baf30"
+  }
+]
