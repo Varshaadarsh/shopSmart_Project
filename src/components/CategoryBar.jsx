@@ -11,10 +11,10 @@ function CategoryBar() {
   const categories = [
     "electronics",
     "fashion",
-    "smartphones",
+    "mobiles",
     "beauty",
     "groceries",
-    "home-decoration",
+    "home",
     "more"
   ];
 

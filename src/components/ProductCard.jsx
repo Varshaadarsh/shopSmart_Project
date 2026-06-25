@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { FaHeart } from "react-icons/fa";
 
 function ProductCard({
   product,
   addToCart,
   addToCompare,
+  addToWishlist
 }) {
   const [imageLoaded, setImageLoaded] =
     useState(false);
@@ -24,9 +26,8 @@ function ProductCard({
         <img
           src={product.thumbnail}
           alt={product.title}
-          className={`card-img-top product-image ${
-            imageLoaded ? "d-block" : "d-none"
-          }`}
+          className={`card-img-top product-image ${imageLoaded ? "d-block" : "d-none"
+            }`}
           onLoad={() => setImageLoaded(true)}
         />
 
@@ -76,6 +77,13 @@ function ProductCard({
             }}
           >
             ⚖ Compare
+          </button>
+
+          <button
+            className="btn btn-danger w-100 mt-2"
+            onClick={() => addToWishlist(product)}
+          >
+            <FaHeart /> Wishlist
           </button>
         </div>
       </div>

@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 function ProductDetails({
   cartItems,
   setCartItems,
-  wishlistItems,
-  setWishlistItems,
+  wishlist = [],
+  addToWishlist,
+  removeFromWishlist,
+  addToCompare,
 }) {
   const { id } = useParams();
 
@@ -32,18 +34,9 @@ function ProductDetails({
     }
   };
 
-  const addToWishlist = () => {
-    const exists = wishlistItems.find(
-      (item) => item.id === product.id
-    );
-
-    if (!exists) {
-      setWishlistItems([
-        ...wishlistItems,
-        product,
-      ]);
-      alert("Added to Wishlist");
-    }
+  const handleWishlist = () => {
+    addToWishlist(product);
+    alert("Added to Wishlist");
   };
 
   return (
@@ -110,10 +103,11 @@ function ProductDetails({
 
             <button
               className="btn btn-danger btn-lg"
-              onClick={addToWishlist}
+              onClick={handleWishlist}
             >
               Wishlist
             </button>
+
           </div>
         </div>
       </div>
