@@ -3,6 +3,7 @@ import {
   FaSearch,
   FaUserCircle,
   FaBalanceScale,
+  FaHeart
 } from "react-icons/fa";
 
 import {
@@ -16,6 +17,7 @@ function Navbar({
   openLogin,
   cartCount,
   compareCount,
+  wishlist = [],
   products = [],
 }) {
   const navigate = useNavigate();
@@ -125,47 +127,46 @@ function Navbar({
 
               {suggestions.length >
                 0 && (
-                <div
-                  className="list-group position-absolute w-100"
-                  style={{
-                    top: "100%",
-                    zIndex: 9999,
-                  }}
-                >
-                  {suggestions.map(
-                    (product) => (
-                      <Link
-                        key={product.id}
-                        to={`/product/${product.id}`}
-                        className="list-group-item list-group-item-action"
-                        onClick={() => {
-                          setSearch(
+                  <div
+                    className="list-group position-absolute w-100"
+                    style={{
+                      top: "100%",
+                      zIndex: 9999,
+                    }}
+                  >
+                    {suggestions.map(
+                      (product) => (
+                        <Link
+                          key={product.id}
+                          to={`/product/${product.id}`}
+                          className="list-group-item list-group-item-action"
+                          onClick={() => {
+                            setSearch(
+                              product.title
+                            );
+                            setSuggestions(
+                              []
+                            );
+                          }}
+                        >
+                          {
                             product.title
-                          );
-                          setSuggestions(
-                            []
-                          );
-                        }}
-                      >
-                        {
-                          product.title
-                        }
-                      </Link>
-                    )
-                  )}
-                </div>
-              )}
+                          }
+                        </Link>
+                      )
+                    )}
+                  </div>
+                )}
             </div>
           </form>
 
           <ul className="navbar-nav ms-auto align-items-lg-center">
+
             <li className="nav-item mb-2 mb-lg-0 me-lg-2">
               {!isLoggedIn ? (
                 <button
                   className="btn btn-light w-100"
-                  onClick={
-                    openLogin
-                  }
+                  onClick={openLogin}
                 >
                   <FaUserCircle className="me-2" />
                   Login
@@ -178,9 +179,7 @@ function Navbar({
 
                   <button
                     className="btn btn-light"
-                    onClick={
-                      handleLogout
-                    }
+                    onClick={handleLogout}
                   >
                     Logout
                   </button>
@@ -190,12 +189,21 @@ function Navbar({
 
             <li className="nav-item mb-2 mb-lg-0 me-lg-2">
               <Link
+                to="/wishlist"
+                className="btn btn-outline-light w-100"
+              >
+                <FaHeart className="me-2 text-danger" />
+                Wishlist ({wishlist?.length || 0})
+              </Link>
+            </li>
+
+            <li className="nav-item mb-2 mb-lg-0 me-lg-2">
+              <Link
                 to="/compare"
                 className="btn btn-outline-light w-100"
               >
                 <FaBalanceScale className="me-2" />
-                Compare (
-                {compareCount})
+                Compare ({compareCount})
               </Link>
             </li>
 
@@ -208,6 +216,7 @@ function Navbar({
                 Cart ({cartCount})
               </Link>
             </li>
+
           </ul>
         </div>
       </div>

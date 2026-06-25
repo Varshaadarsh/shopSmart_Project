@@ -16,19 +16,43 @@ import ComparePage from "./pages/ComparePage";
 import ChatBot from "./components/ChatBot";
 import { askAI } from "./services/groq";
 import ScrollToTop from "./components/ScrollToTop";
+import Wishlist from "./pages/Wishlist";
 
 function App() {
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [cartItems, setCartItems] = useState([]);
-  const [wishlistItems, setWishlistItems] = useState([]);
   const [compareItems, setCompareItems] = useState([]);
   const [darkMode, setDarkMode] = useState(false);
+  const [wishlist, setWishlist] =
+    useState(() => {
+      const saved =
+        localStorage.getItem(
+          "wishlist"
+        );
+
+      return saved
+        ? JSON.parse(saved)
+        : [];
+    });
   const [isLoggedIn, setIsLoggedIn] =
     useState(
       localStorage.getItem("isLoggedIn") === "true"
     );
 
+  useEffect(() => {
+    localStorage.setItem(
+      "wishlist",
+      JSON.stringify(wishlist)
+    );
+  }, [wishlist]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setShowLogin(true);
+    }
+  }, [isLoggedIn]);
   useEffect(() => {
     fetch("https://dummyjson.com/products?limit=1000")
       .then((res) => res.json())
@@ -39,15 +63,44 @@ function App() {
         const allProducts = [
           ...data.products,
           ...localProducts,
-        ];
+        ].map((product) => ({
+          ...product,
+          searchTerms: `
+    ${product.title || ""}
+    ${product.brand || ""}
+    ${product.category || ""}
+    ${product.category === "smartphones"
+              ? "mobile mobiles phone phones"
+              : ""
+            }
+    ${product.category === "laptops"
+              ? "laptop laptops notebook"
+              : ""
+            }
+    ${product.category === "beauty"
+              ? "beauty makeup cosmetics skincare mascara lipstick"
+              : ""
+            }
+    ${product.category === "groceries"
+              ? "grocery groceries food"
+              : ""
+            }
+    ${product.category === "furniture"
+              ? "sofa chair table furniture"
+              : ""
+            }
+  `.toLowerCase(),
+        }));
 
         console.log("ALL PRODUCTS", allProducts);
 
         setProducts(allProducts);
+        setLoading(false);
 
       })
       .catch((error) => {
         console.error(error);
+        setLoading(false);
       });
   }, []);
   const addToCart = (product) => {
@@ -59,6 +112,25 @@ function App() {
       setCartItems([...cartItems, product]);
       alert("Added to Cart");
     }
+  };
+
+  const addToWishlist = (product) => {
+    const exists = wishlist.find(
+      (item) => item.id === product.id
+    );
+
+    if (exists) {
+      alert("Already in wishlist");
+      return;
+    }
+
+    setWishlist((prev) => [...prev, product]);
+  };
+
+  const removeFromWishlist = (id) => {
+    setWishlist((prev) =>
+      prev.filter((item) => item.id !== id)
+    );
   };
 
   const addToCompare = (product) => {
@@ -80,6 +152,22 @@ function App() {
 
     alert(`${product.title} added for comparison`);
   };
+
+  if (loading) {
+    return (
+      <div className="page-loader">
+        <h1 className="loader-logo">
+          ShopSmart
+        </h1>
+
+        <div className="loader-spinner"></div>
+
+        <p className="loader-text">
+          Loading Amazing Deals...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -106,6 +194,7 @@ function App() {
         isLoggedIn={isLoggedIn}
         cartCount={cartItems.length}
         compareCount={compareItems.length}
+        wishlist={wishlist}
         products={products}
       >
         <Routes>
@@ -116,6 +205,7 @@ function App() {
                 products={products}
                 addToCart={addToCart}
                 addToCompare={addToCompare}
+                addToWishlist={addToWishlist}
               />
             }
           />
@@ -126,8 +216,10 @@ function App() {
               <ProductDetails
                 cartItems={cartItems}
                 setCartItems={setCartItems}
-                wishlistItems={wishlistItems}
-                setWishlistItems={setWishlistItems}
+                wishlist={wishlist}
+                addToWishlist={addToWishlist}
+                removeFromWishlist={removeFromWishlist}
+                addToCompare={addToCompare}
               />
             }
           />
@@ -139,6 +231,7 @@ function App() {
                 products={products}
                 addToCart={addToCart}
                 addToCompare={addToCompare}
+                addToWishlist={addToWishlist}
               />
             }
           />
@@ -150,6 +243,7 @@ function App() {
                 products={products}
                 addToCart={addToCart}
                 addToCompare={addToCompare}
+                addToWishlist={addToWishlist}
               />
             }
           />
@@ -190,12 +284,25 @@ function App() {
           />
 
           <Route
+            path="/wishlist"
+            element={
+              <Wishlist
+                wishlist={wishlist}
+                removeFromWishlist={removeFromWishlist}
+                addToCart={addToCart}
+                addToCompare={addToCompare}
+              />
+            }
+          />
+
+          <Route
             path="/success"
             element={
               <OrderSuccess
                 products={products}
                 addToCart={addToCart}
                 addToCompare={addToCompare}
+                addToWishlist={addToWishlist}
               />
             }
           />
@@ -210,7 +317,7 @@ function App() {
             }
           />
         </Routes>
-      </MainLayout>
+      </MainLayout >
     </>
   );
 }

@@ -9,14 +9,15 @@ function MainLayout({
   cartCount,
   compareCount,
   products,
+  wishlist
 }) {
   return (
     <>
       <Navbar
         openLogin={openLogin}
-        isLoggedIn={isLoggedIn}
         cartCount={cartCount}
         compareCount={compareCount}
+        wishlist={wishlist}
         products={products}
       />
 

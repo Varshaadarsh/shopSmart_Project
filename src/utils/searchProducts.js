@@ -1,58 +1,113 @@
-export const searchProducts = (
-  query,
-  products
-) => {
-  const text = query.toLowerCase();
+export const searchProducts = (query, products) => {
+  if (!query?.trim()) return [];
 
+  const text = query.toLowerCase().trim();
+
+  // Budget extraction
   const budgetMatch =
-    text.match(/under\s*(\d+)/);
+    text.match(/under\s*₹?\s*(\d+)/i) ||
+    text.match(/below\s*₹?\s*(\d+)/i) ||
+    text.match(/less than\s*₹?\s*(\d+)/i);
 
-  const budget =
-    budgetMatch
-      ? Number(budgetMatch[1])
-      : null;
+  const budget = budgetMatch
+  
+    ? Number(budgetMatch[1])
+    : null;
+
+  // Category aliases
+  const aliases = {
+    phone: "smartphones",
+    phones: "smartphones",
+    mobile: "smartphones",
+    mobiles: "smartphones",
+
+    laptop: "laptops",
+    laptops: "laptops",
+
+    watch: "mens-watches",
+    watches: "mens-watches",
+
+    beauty: "beauty",
+    grocery: "groceries",
+    groceries: "groceries",
+
+    shirt: "mens-shirts",
+    shirts: "mens-shirts",
+
+    shoe: "mens-shoes",
+    shoes: "mens-shoes",
+
+    iphone: "iphone",
+    iphones: "iphone"
+  };
+
+  const stopWords = [
+    "i",
+    "need",
+    "show",
+    "me",
+    "find",
+    "suggest",
+    "give",
+    "looking",
+    "for",
+    "want",
+    "please",
+    "can",
+    "you",
+    "a",
+    "an",
+    "the",
+    "with",
+    "good",
+    "best",
+    "budget",
+    "under",
+    "below",
+    "less",
+    "than"
+  ];
 
   const keywords = text
-    .replace(/under\s*\d+/g, "")
-    .split(" ")
+    .replace(
+      /(under|below)\s*₹?\s*\d+|(less than)\s*₹?\s*\d+/gi,
+      ""
+    )
+    .split(/\s+/)
     .filter(
       (word) =>
-        word.length > 2 &&
-        ![
-          "need",
-          "want",
-          "show",
-          "best",
-          "find",
-          "give",
-          "please",
-          "me",
-        ].includes(word)
+        word &&
+        !stopWords.includes(word)
+    )
+    .map(
+      (word) =>
+        aliases[word] || word
     );
 
-  let results = products.filter((product) => {
-    const searchText = `
+  const results = products.filter((product) => {
+    const searchableText = `
       ${product.title || ""}
       ${product.brand || ""}
       ${product.category || ""}
+      ${product.description || ""}
     `.toLowerCase();
 
-    return keywords.some((keyword) => {
-      const normalizedKeyword = keyword
-        .toLowerCase()
-        .replace(/s$/, "");
+    const matchesKeywords =
+      keywords.length === 0
+        ? true
+        : keywords.some((word) =>
+            searchableText.includes(word)
+          );
 
-      return searchText.includes(
-        normalizedKeyword
-      );
-    });
-  });
+    const matchesBudget =
+      budget === null ||
+      Number(product.price) <= budget;
 
-  if (budget) {
-    results = results.filter(
-      (p) => p.price <= budget
+    return (
+      matchesKeywords &&
+      matchesBudget
     );
-  }
+  });
 
   return results.sort(
     (a, b) =>

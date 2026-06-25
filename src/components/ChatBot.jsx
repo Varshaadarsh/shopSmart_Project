@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaRobot, FaMicrophone } from "react-icons/fa";
 import { askAI } from "../services/groq";
@@ -31,6 +31,13 @@ function ChatBot({
   const [lastSearchResults, setLastSearchResults] =
     useState([]);
 
+  const [listening, setListening] =
+    useState(false);
+
+  const [displayedProducts, setDisplayedProducts] =
+    useState([]);
+
+  const chatBodyRef = useRef(null);
   const getBotResponse = (message) => {
     const msg = message.toLowerCase().trim();
 
@@ -314,72 +321,6 @@ You can say:
     }
 
     // -------------------------
-    // CATEGORY SEARCH
-    // -------------------------
-
-    const categoryAliases = {
-      beauty: ["beauty", "makeup", "cosmetics"],
-      groceries: ["grocery", "groceries"],
-      mobiles: ["mobile", "mobiles", "phone", "phones", "iphone"],
-      electronics: ["electronics", "laptop", "laptops"],
-    };
-
-    const matchedCategory = Object.keys(
-      categoryAliases
-    ).find((category) =>
-      categoryAliases[category].some((keyword) =>
-        msg.includes(keyword)
-      )
-    );
-
-    if (matchedCategory) {
-
-      let categoryProducts = [];
-
-      if (matchedCategory === "beauty") {
-        categoryProducts = products.filter(
-          (p) =>
-            p.category?.toLowerCase().includes("beauty") ||
-            p.category?.toLowerCase().includes("fragrances") ||
-            p.category?.toLowerCase().includes("skin")
-        );
-      }
-
-      if (matchedCategory === "mobiles") {
-        categoryProducts = products.filter(
-          (p) =>
-            p.category?.toLowerCase().includes("smartphone") ||
-            p.category?.toLowerCase().includes("mobile")
-        );
-      }
-
-      if (matchedCategory === "electronics") {
-        categoryProducts = products.filter(
-          (p) =>
-            p.category?.toLowerCase().includes("laptop")
-        );
-      }
-
-      if (matchedCategory === "groceries") {
-        categoryProducts = products.filter(
-          (p) =>
-            p.category?.toLowerCase().includes("groceries")
-        );
-      }
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "bot",
-          text: `📦 ${matchedCategory} Products`,
-          products: categoryProducts.slice(0, 10),
-        },
-      ]);
-
-      return;
-    }
-
-    // -------------------------
     // PRODUCT SEARCH
     // -------------------------
 
@@ -398,6 +339,9 @@ You can say:
           sender: "bot",
           text: `Found ${searchResults.length} products`,
           products: searchResults.slice(0, 5),
+          allProducts: searchResults,
+          currentCount: 5,
+          showMore: searchResults.length > 5,
         },
       ]);
 
@@ -487,16 +431,89 @@ Answer based ONLY on these products.
     }
   };
 
+  useEffect(() => {
+    if (chatBodyRef.current) {
+      chatBodyRef.current.scrollTo({
+        top: chatBodyRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [messages]);
+
+  const sendVoiceMessage = async (
+    transcript
+  ) => {
+    if (!transcript.trim()) return;
+
+    const userMsg = {
+      sender: "user",
+      text: transcript,
+    };
+
+    setMessages((prev) => [
+      ...prev,
+      userMsg,
+    ]);
+
+    const searchResults =
+      searchProducts(
+        transcript,
+        products
+      );
+
+    if (searchResults.length > 0) {
+      setLastSearchResults(searchResults);
+
+      const botMessage = {
+        sender: "bot",
+        text: `Found ${searchResults.length} products`,
+        products: searchResults.slice(0, 5),
+        allProducts: searchResults,
+        currentCount: 5,
+        showMore: searchResults.length > 5,
+      };
+
+      setMessages((prev) => [
+        ...prev,
+        botMessage,
+      ]);
+
+      speak(
+        `I found ${searchResults.length} products`
+      );
+
+      return;
+    }
+
+    speak(
+      "Sorry, I couldn't find any matching products"
+    );
+  };
+
+
+  const speak = (text) => {
+    const utterance =
+      new SpeechSynthesisUtterance(
+        text
+      );
+
+    utterance.lang = "en-IN";
+    utterance.rate = 1;
+    utterance.pitch = 1;
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(
+      utterance
+    );
+  };
   const startVoice = () => {
     const SpeechRecognition =
       window.SpeechRecognition ||
       window.webkitSpeechRecognition;
 
-    if (
-      !SpeechRecognition
-    ) {
+    if (!SpeechRecognition) {
       alert(
-        "Voice recognition not supported"
+        "Voice recognition is supported only in Chrome and Edge."
       );
       return;
     }
@@ -504,16 +521,33 @@ Answer based ONLY on these products.
     const recognition =
       new SpeechRecognition();
 
-    recognition.lang =
-      "en-US";
+    recognition.lang = "en-IN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
 
-    recognition.onresult = (
-      event
-    ) => {
-      setInput(
-        event.results[0][0]
-          .transcript
-      );
+    recognition.onstart = () => {
+      setListening(true);
+      speak("I'm listening");
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+    };
+
+    recognition.onerror = (e) => {
+      console.error(e);
+      setListening(false);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript =
+        event.results[0][0].transcript;
+
+      speak(`You said ${transcript}`);
+
+      sendVoiceMessage(transcript);
+
+      setInput("");
     };
 
     recognition.start();
@@ -562,7 +596,8 @@ Answer based ONLY on these products.
             </div>
           </div>
 
-          <div className="chat-body">
+          <div className="chat-body"
+            ref={chatBodyRef}>
             {messages.map(
               (
                 msg,
@@ -577,53 +612,81 @@ Answer based ONLY on these products.
                   <>
                     <div>{msg.text}</div>
 
-                    {msg.products &&
-                      msg.products.map((product) => (
-
-                        <div
-                          key={product.id}
-                          className="chat-product-card"
-                        >
-
-                          <img
-                            src={product.thumbnail}
-                            alt={product.title}
-                          />
-
-                          <h6>{product.title}</h6>
-
-                          <p>₹{product.price}</p>
-
-                          <p>
-                            ⭐ {product.rating}
-                          </p>
-
-                          <button
-                            onClick={() =>
-                              navigate(`/product/${product.id}`)
-                            }
+                    {msg.products && (
+                      <>
+                        {msg.products.map((product) => (
+                          <div
+                            key={product.id}
+                            className="chat-product-card"
                           >
-                            View Product
-                          </button>
+                            <img
+                              src={product.thumbnail}
+                              alt={product.title}
+                            />
 
+                            <h6>{product.title}</h6>
+
+                            <p>₹{product.price}</p>
+
+                            <p>⭐ {product.rating}</p>
+
+                            <button
+                              onClick={() =>
+                                navigate(`/product/${product.id}`)
+                              }
+                            >
+                              View Product
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                addToCart(product)
+                              }
+                            >
+                              Add To Cart
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                addToCompare(product)
+                              }
+                            >
+                              Compare
+                            </button>
+                          </div>
+                        ))}
+
+                        {msg.showMore && (
                           <button
-                            onClick={() =>
-                              addToCart(product)
-                            }
-                          >
-                            Add To Cart
-                          </button>
+                            className="show-more-btn"
+                            onClick={() => {
+                              setMessages((prev) =>
+                                prev.map((m, i) => {
+                                  if (i !== index) return m;
 
-                          <button
-                            onClick={() =>
-                              addToCompare(product)
-                            }
-                          >
-                            Compare
-                          </button>
+                                  const newCount =
+                                    (m.currentCount || 5) + 5;
 
-                        </div>
-                      ))}
+                                  return {
+                                    ...m,
+                                    currentCount: newCount,
+                                    products: m.allProducts.slice(
+                                      0,
+                                      newCount
+                                    ),
+                                    showMore:
+                                      m.allProducts.length >
+                                      newCount,
+                                  };
+                                })
+                              );
+                            }}
+                          >
+                            Show More
+                          </button>
+                        )}
+                      </>
+                    )}
                   </>
                 </div>
               )

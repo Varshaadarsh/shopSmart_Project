@@ -1,6 +1,6 @@
 import ProductCard from "./ProductCard";
 
-function ProductGrid({ products = [], addToCart, addToCompare }) {
+function ProductGrid({ products = [], addToCart, addToCompare, addToWishlist }) {
   return (
     <div className="row g-4">
       {products.map((product) => (
@@ -12,6 +12,7 @@ function ProductGrid({ products = [], addToCart, addToCompare }) {
             product={product}
             addToCart={addToCart}
             addToCompare={addToCompare}
+            addToWishlist={addToWishlist}
           />
         </div>
       ))}
